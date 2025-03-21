@@ -25,7 +25,7 @@ app.use(express.static(path.join(__dirname, '../../public')));
 
 // Database connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/faqchatbot')
-  .then(() => console.log('MongoDB connected'))
+  .then(() => console.log('Connected to MongoDB'))
   .catch(err => console.error('MongoDB connection error:', err));
 
 // API Routes
@@ -81,9 +81,15 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+});
+
 // Start server
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });
 
 module.exports = app; 
