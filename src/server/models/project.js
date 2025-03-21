@@ -15,20 +15,32 @@ const projectSchema = new mongoose.Schema({
     required: true,
     unique: true
   },
-  owner: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
   settings: {
+    language: {
+      type: String,
+      default: 'he',
+      enum: ['he', 'en']
+    },
+    primaryColor: {
+      type: String,
+      default: '#3498db'
+    },
+    logo: {
+      type: String,
+      default: null
+    },
+    welcomeMessage: {
+      type: String,
+      default: 'שלום! איך אוכל לעזור לך היום?'
+    },
+    fallbackMessage: {
+      type: String,
+      default: 'מצטער, לא הצלחתי למצוא תשובה לשאלה שלך. אנא נסה לנסח אותה אחרת או פנה לצוות התמיכה שלנו.'
+    },
     // Appearance settings
     chatIcon: {
       type: String,
       default: '/default-icon.png'
-    },
-    primaryColor: {
-      type: String,
-      default: '#0084ff'
     },
     secondaryColor: {
       type: String,
@@ -45,22 +57,12 @@ const projectSchema = new mongoose.Schema({
     direction: {
       type: String,
       enum: ['ltr', 'rtl'],
-      default: 'ltr'
+      default: 'rtl'
     },
     position: {
       type: String,
       enum: ['bottom-right', 'bottom-left', 'top-right', 'top-left'],
       default: 'bottom-right'
-    },
-    welcomeMessage: {
-      en: {
-        type: String,
-        default: 'Hello! How can I help you today?'
-      },
-      he: {
-        type: String,
-        default: 'שלום! איך אני יכול לעזור לך היום?'
-      }
     }
   },
   statistics: {
@@ -98,6 +100,14 @@ const projectSchema = new mongoose.Schema({
 // Update timestamps
 projectSchema.pre('save', function(next) {
   this.updatedAt = Date.now();
+  next();
+});
+
+// Generate API key before saving new project
+projectSchema.pre('save', function(next) {
+  if (this.isNew) {
+    this.apiKey = require('crypto').randomBytes(32).toString('hex');
+  }
   next();
 });
 

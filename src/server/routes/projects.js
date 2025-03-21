@@ -23,6 +23,13 @@ router.post('/create-default', async (req, res) => {
     try {
         const { name, primaryColor, language } = req.body;
 
+        if (!name) {
+            return res.status(400).json({
+                success: false,
+                message: 'Project name is required'
+            });
+        }
+
         const project = new Project({
             name,
             settings: {
@@ -38,7 +45,7 @@ router.post('/create-default', async (req, res) => {
         });
 
         await project.save();
-        res.json({ 
+        res.status(201).json({ 
             success: true, 
             data: { 
                 projectId: project._id,
@@ -47,7 +54,11 @@ router.post('/create-default', async (req, res) => {
         });
     } catch (error) {
         console.error('Error creating project:', error);
-        res.status(500).json({ success: false, message: 'Error creating project' });
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error creating project',
+            error: error.message
+        });
     }
 });
 
