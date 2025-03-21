@@ -937,17 +937,18 @@
             }
             
             async function createNewProject() {
-                const projectName = document.getElementById('project-name').value;
-                const projectColor = document.getElementById('project-color').value;
-                const projectLanguage = document.getElementById('project-language').value;
-                
-                if (!projectName) {
-                    alert("נא להזין שם למוצר/אתר");
-                    return;
-                }
-                
                 try {
-                    const response = await fetch(`${window.location.protocol}//${window.location.host}/api/projects/create-default`, {
+                    const projectName = document.getElementById('project-name').value;
+                    const projectColor = document.getElementById('project-color').value;
+                    const projectLanguage = document.getElementById('project-language').value;
+                    
+                    if (!projectName) {
+                        alert("נא להזין שם למוצר/אתר");
+                        return;
+                    }
+
+                    // יצירת הפרויקט
+                    const projectResponse = await fetch(`${window.location.protocol}//${window.location.host}/api/projects/create-default`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
@@ -958,120 +959,142 @@
                             language: projectLanguage
                         })
                     });
-                    
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.message || 'Error creating project');
+
+                    if (!projectResponse.ok) {
+                        const errorData = await projectResponse.json();
+                        throw new Error(errorData.message || 'שגיאה ביצירת פרויקט');
                     }
-                    
-                    const result = await response.json();
-                    
-                    if (result.success) {
-                        localStorage.setItem('chatbot_api_key', result.data.apiKey);
-                        apiKey = result.data.apiKey;
-                        
-                        try {
-                            const faqResponse = await fetch(`${window.location.protocol}//${window.location.host}/api/faq/create-default`, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify({
-                                    projectId: result.data.projectId,
-                                    language: projectLanguage
-                                })
-                            });
-                            
-                            if (!faqResponse.ok) {
-                                throw new Error('Failed to create default FAQs');
-                            }
-                            
-                            window.location.reload();
-                        } catch (error) {
-                            console.error("Error creating default FAQs:", error);
-                            alert("הצ'אטבוט נוצר, אך הייתה שגיאה ביצירת השאלות הנפוצות");
-                        }
-                    } else {
-                        throw new Error(result.message || 'Unknown error');
+
+                    const projectResult = await projectResponse.json();
+
+                    if (!projectResult.success) {
+                        throw new Error(projectResult.message || 'שגיאה לא ידועה');
                     }
+
+                    // שמירת ה-API key
+                    localStorage.setItem('chatbot_api_key', projectResult.data.apiKey);
+                    apiKey = projectResult.data.apiKey;
+
+                    // יצירת שאלות ברירת מחדל
+                    const faqResponse = await fetch(`${window.location.protocol}//${window.location.host}/api/faq/create-default`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            projectId: projectResult.data.projectId,
+                            language: projectLanguage
+                        })
+                    });
+
+                    if (!faqResponse.ok) {
+                        throw new Error('שגיאה ביצירת שאלות ברירת מחדל');
+                    }
+
+                    const faqResult = await faqResponse.json();
+                    if (!faqResult.success) {
+                        throw new Error(faqResult.message || 'שגיאה ביצירת שאלות ברירת מחדל');
+                    }
+
+                    // טעינה מחדש של הדף
+                    window.location.reload();
+
                 } catch (error) {
-                    console.error("Error creating project:", error);
-                    alert("שגיאה ביצירת הצ'אטבוט: " + error.message);
+                    console.error("Error:", error);
+                    alert(error.message || "שגיאה לא ידועה");
                 }
             }
             
             async function getProjectData() {
-                const savedApiKey = localStorage.getItem('chatbot_api_key');
-                if (!savedApiKey) {
-                    showLoginForm();
-                    return;
-                }
-                
                 try {
+                    const savedApiKey = localStorage.getItem('chatbot_api_key');
+                    if (!savedApiKey) {
+                        showLoginForm();
+                        return;
+                    }
+
                     apiKey = savedApiKey;
                     const response = await fetch(`${window.location.protocol}//${window.location.host}/api/projects/api-key/${apiKey}`);
-                    
+
                     if (!response.ok) {
-                        throw new Error('Failed to load project data');
+                        throw new Error('שגיאה בטעינת נתוני הפרויקט');
                     }
-                    
+
                     const result = await response.json();
-                    
-                    if (result.success) {
-                        projectData = result.data;
-                        loadProjectData();
-                    } else {
-                        throw new Error(result.message || 'Failed to load project data');
+                    if (!result.success) {
+                        throw new Error(result.message || 'שגיאה בטעינת נתוני הפרויקט');
                     }
+
+                    projectData = result.data;
+                    await loadProjectData();
+
                 } catch (error) {
-                    console.error("Error fetching project data:", error);
+                    console.error("Error:", error);
                     localStorage.removeItem('chatbot_api_key');
+                    alert(error.message || "שגיאה בטעינת נתוני הפרויקט");
                     showLoginForm();
                 }
             }
             
-            function loadProjectData() {
+            async function loadProjectData() {
                 if (!projectData) return;
-                
-                const widgetCodeElem = document.getElementById('widget-code');
-                if (widgetCodeElem) {
-                    widgetCodeElem.value = '<script src="' + API_URL + '/chatbot.js?key=' + apiKey + '"><\/script>';
+
+                try {
+                    // עדכון קוד ההטמעה
+                    const widgetCodeElem = document.getElementById('widget-code');
+                    if (widgetCodeElem) {
+                        const widgetUrl = `${window.location.protocol}//${window.location.host}/chatbot.js`;
+                        widgetCodeElem.value = `<script src="${widgetUrl}?key=${apiKey}"><\/script>`;
+                    }
+
+                    // טעינת שאלות נפוצות
+                    await loadFAQs();
+
+                } catch (error) {
+                    console.error("Error loading project data:", error);
+                    alert("שגיאה בטעינת נתוני הפרויקט");
                 }
-                
-                loadFAQs();
             }
             
             async function loadFAQs() {
                 if (!projectData?._id) return;
-                
+
                 try {
-                    const response = await fetch(`${API_URL}/api/faq/project/${projectData._id}`);
-                    const result = await response.json();
+                    const response = await fetch(`${window.location.protocol}//${window.location.host}/api/faq/project/${projectData._id}`);
                     
-                    if (response.ok && result.success) {
-                        const faqContainer = document.querySelector('.card:nth-child(2) .faq-item')?.parentNode;
-                        if (!faqContainer) return;
-                        
-                        faqContainer.innerHTML = '';
-                        
-                        if (result.data.length > 0) {
-                            result.data.forEach(faq => {
-                                const faqItem = document.createElement('div');
-                                faqItem.className = 'faq-item';
-                                faqItem.innerHTML = `
-                                    <h3>${faq.question}</h3>
-                                    <p>${faq.answer}</p>
-                                    <div class="faq-actions">
-                                        <button data-id="${faq._id}">ערוך</button>
-                                        <button class="danger" data-id="${faq._id}">מחק</button>
-                                    </div>
-                                `;
-                                faqContainer.appendChild(faqItem);
-                            });
-                        }
+                    if (!response.ok) {
+                        throw new Error('שגיאה בטעינת שאלות נפוצות');
                     }
+
+                    const result = await response.json();
+                    if (!result.success) {
+                        throw new Error(result.message || 'שגיאה בטעינת שאלות נפוצות');
+                    }
+
+                    const faqContainer = document.querySelector('.card:nth-child(2) .faq-item')?.parentNode;
+                    if (!faqContainer) return;
+
+                    faqContainer.innerHTML = '';
+
+                    if (result.data.length > 0) {
+                        result.data.forEach(faq => {
+                            const faqItem = document.createElement('div');
+                            faqItem.className = 'faq-item';
+                            faqItem.innerHTML = `
+                                <h3>${faq.question}</h3>
+                                <p>${faq.answer}</p>
+                                <div class="faq-actions">
+                                    <button data-id="${faq._id}">ערוך</button>
+                                    <button class="danger" data-id="${faq._id}">מחק</button>
+                                </div>
+                            `;
+                            faqContainer.appendChild(faqItem);
+                        });
+                    }
+
                 } catch (error) {
                     console.error("Error loading FAQs:", error);
+                    alert(error.message || "שגיאה בטעינת שאלות נפוצות");
                 }
             }
             

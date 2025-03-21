@@ -46,9 +46,29 @@ router.post('/create-default', async (req, res) => {
     try {
         const { projectId, language } = req.body;
         
+        if (!projectId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Project ID is required'
+            });
+        }
+
         const project = await Project.findById(projectId);
         if (!project) {
-            return res.status(404).json({ success: false, message: 'Project not found' });
+            return res.status(404).json({
+                success: false,
+                message: 'Project not found'
+            });
+        }
+
+        // בדיקה אם כבר קיימות שאלות לפרויקט
+        const existingFAQs = await FAQ.find({ projectId });
+        if (existingFAQs.length > 0) {
+            return res.status(200).json({
+                success: true,
+                message: 'FAQs already exist for this project',
+                data: existingFAQs
+            });
         }
 
         const defaultFAQs = [
@@ -74,14 +94,22 @@ router.post('/create-default', async (req, res) => {
             defaultFAQs.map(faq => ({
                 ...faq,
                 projectId,
-                language: language || 'he'
+                language: language || project.settings?.language || 'he'
             }))
         );
 
-        res.json({ success: true, data: faqs });
+        res.status(201).json({
+            success: true,
+            message: 'Default FAQs created successfully',
+            data: faqs
+        });
     } catch (error) {
         console.error('Error creating default FAQs:', error);
-        res.status(500).json({ success: false, message: 'Error creating default FAQs' });
+        res.status(500).json({
+            success: false,
+            message: 'Error creating default FAQs',
+            error: error.message
+        });
     }
 });
 
