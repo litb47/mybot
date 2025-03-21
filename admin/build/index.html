@@ -77,6 +77,7 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             padding: 20px;
             margin-bottom: 30px;
+            overflow: hidden;
         }
         .card-header {
             display: flex;
@@ -397,6 +398,24 @@
             visibility: visible;
             opacity: 1;
         }
+        .quick-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-start;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        .quick-actions button {
+            min-width: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 15px;
+        }
+        .quick-actions button i {
+            margin: 0;
+        }
     </style>
 </head>
 <body>
@@ -416,68 +435,68 @@
     <div class="content">
         <!-- Dashboard Tab -->
         <div id="dashboard" class="tab-content active">
-            <h1>Dashboard</h1>
+            <h1>לוח בקרה</h1>
             
             <div class="stats-container">
                 <div class="stat-card">
                     <div class="stat-value">127</div>
-                    <div class="stat-label">Total Conversations</div>
+                    <div class="stat-label">סה"כ שיחות</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value">24</div>
-                    <div class="stat-label">Total FAQs</div>
+                    <div class="stat-label">סה"כ שאלות</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value">89%</div>
-                    <div class="stat-label">Satisfaction Rate</div>
+                    <div class="stat-label">שביעות רצון</div>
                 </div>
             </div>
             
             <div class="card">
                 <div class="card-header">
-                    <h2>Recent Activity</h2>
+                    <h2>פעולות מהירות</h2>
+                </div>
+                <div class="quick-actions">
+                    <button><i class="fas fa-plus"></i> הוסף שאלה</button>
+                    <button class="secondary"><i class="fas fa-cog"></i> הגדרות בוט</button>
+                    <button class="success"><i class="fas fa-code"></i> קבל קוד להטמעה</button>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2>פעילות אחרונה</h2>
                 </div>
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>Date</th>
-                            <th>User Question</th>
-                            <th>Response</th>
-                            <th>Status</th>
+                            <th>תאריך</th>
+                            <th>שאלת משתמש</th>
+                            <th>תשובה</th>
+                            <th>סטטוס</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
                             <td>2025-03-21</td>
-                            <td>What are your business hours?</td>
-                            <td>We are open Monday to Friday, 9 AM to 5 PM.</td>
-                            <td>Answered</td>
+                            <td>מה שעות הפעילות שלכם?</td>
+                            <td>אנחנו פתוחים בימים א'-ה', 9:00-17:00</td>
+                            <td>נענה</td>
                         </tr>
                         <tr>
                             <td>2025-03-21</td>
-                            <td>How can I reset my password?</td>
-                            <td>You can reset your password by clicking on...</td>
-                            <td>Answered</td>
+                            <td>איך אני מאפס סיסמה?</td>
+                            <td>ניתן לאפס את הסיסמה על ידי...</td>
+                            <td>נענה</td>
                         </tr>
                         <tr>
                             <td>2025-03-20</td>
-                            <td>Do you offer free shipping?</td>
-                            <td>Yes, we offer free shipping on orders over $50.</td>
-                            <td>Answered</td>
+                            <td>האם יש משלוח חינם?</td>
+                            <td>כן, משלוח חינם בהזמנות מעל 200 ש"ח</td>
+                            <td>נענה</td>
                         </tr>
                     </tbody>
                 </table>
-            </div>
-            
-            <div class="card">
-                <div class="card-header">
-                    <h2>Quick Actions</h2>
-                </div>
-                <div style="display: flex; gap: 15px;">
-                    <button><i class="fas fa-plus"></i> Add FAQ</button>
-                    <button class="secondary"><i class="fas fa-cog"></i> Configure Bot</button>
-                    <button class="success"><i class="fas fa-code"></i> Get Embed Code</button>
-                </div>
             </div>
         </div>
 
