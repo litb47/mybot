@@ -55,13 +55,22 @@
         button:hover {
             background-color: #45a049;
         }
+        .dashboard {
+            display: none;
+            margin-top: 20px;
+        }
+        .error-message {
+            color: red;
+            margin-top: 10px;
+            display: none;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>FAQ Chatbot - Admin Console</h1>
         
-        <div class="login-form">
+        <div class="login-form" id="login-section">
             <h2>Login</h2>
             <div class="form-group">
                 <label for="username">Username</label>
@@ -72,21 +81,56 @@
                 <input type="password" id="password" name="password" placeholder="Enter your password">
             </div>
             <button type="submit" id="login-btn">Login</button>
+            <div class="error-message" id="error-msg">Invalid username or password. Please try again.</div>
+        </div>
+        
+        <div class="dashboard" id="dashboard-section">
+            <h2>Welcome to the Admin Dashboard</h2>
+            <p>Here you can manage your chatbot configuration.</p>
+            
+            <h3>Features (Coming Soon):</h3>
+            <ul>
+                <li>Manage FAQ questions and answers</li>
+                <li>Configure chatbot behavior</li>
+                <li>View analytics and usage statistics</li>
+                <li>Export/import data</li>
+            </ul>
+            
+            <button id="logout-btn">Logout</button>
         </div>
     </div>
 
     <script>
+        // Simple hardcoded credentials for demonstration
+        const ADMIN_USERNAME = "admin";
+        const ADMIN_PASSWORD = "admin123";
+        
         document.getElementById('login-btn').addEventListener('click', function() {
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             
             if (!username || !password) {
-                alert('Please enter both username and password.');
+                document.getElementById('error-msg').style.display = 'block';
                 return;
             }
             
-            // You would normally send this to the server
-            alert('Login functionality will be implemented in a future update.');
+            // Check credentials
+            if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+                // Hide login, show dashboard
+                document.getElementById('login-section').style.display = 'none';
+                document.getElementById('dashboard-section').style.display = 'block';
+                document.getElementById('error-msg').style.display = 'none';
+            } else {
+                document.getElementById('error-msg').style.display = 'block';
+            }
+        });
+        
+        // Logout functionality
+        document.getElementById('logout-btn').addEventListener('click', function() {
+            document.getElementById('login-section').style.display = 'block';
+            document.getElementById('dashboard-section').style.display = 'none';
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
         });
     </script>
 </body>
