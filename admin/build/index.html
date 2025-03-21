@@ -27,7 +27,7 @@
             top: 0;
             right: 0;
             left: 0;
-            z-index: 1000;
+            z-index: 999;
             height: 64px;
         }
 
@@ -53,7 +53,7 @@
             right: 0;
             box-shadow: -2px 0 10px rgba(0,0,0,0.1);
             overflow-y: auto;
-            z-index: 2;
+            z-index: 998;
         }
 
         .content {
@@ -1427,6 +1427,186 @@
 
             // Initialize appearance and get project data
             initializeAppearance();
+            getProjectData();
+
+            // Initialize everything
+            menuLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const tabId = link.getAttribute('data-tab');
+                    if (!tabId) return;
+
+                    menuLinks.forEach(l => l.classList.remove('active'));
+                    tabContents.forEach(t => t.classList.remove('active'));
+                    
+                    link.classList.add('active');
+                    const tabElement = document.getElementById(tabId);
+                    if (tabElement) {
+                        tabElement.classList.add('active');
+                        if (tabId === 'appearance') {
+                            initializeAppearance();
+                        } else if (tabId === 'faq') {
+                            loadFAQs();
+                        }
+                    }
+                });
+            });
+
+            async function showLoginForm() {
+                const existingForm = document.querySelector('.login-form-container');
+                if (existingForm) {
+                    existingForm.remove();
+                }
+
+                const loginFormHtml = `
+                    <div class="login-form-container" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000;">
+                        <div style="background: white; padding: 30px; border-radius: 10px; width: 350px;">
+                            <h2 style="text-align: right;">יצירת צ'אטבוט חדש</h2>
+                            <div class="form-group">
+                                <label for="project-name">שם המוצר/אתר</label>
+                                <input type="text" id="project-name" placeholder="הזן שם">
+                            </div>
+                            <div class="form-group">
+                                <label for="project-language">שפה</label>
+                                <select id="project-language">
+                                    <option value="he">עברית</option>
+                                    <option value="en">אנגלית</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="project-color">צבע ראשי</label>
+                                <input type="color" id="project-color" value="#3498db">
+                            </div>
+                            <button id="create-project-btn" style="width: 100%; margin-top: 10px;">צור צ'אטבוט</button>
+                        </div>
+                    </div>
+                `;
+                
+                const loginFormContainer = document.createElement('div');
+                loginFormContainer.innerHTML = loginFormHtml;
+                document.body.appendChild(loginFormContainer);
+                
+                document.getElementById('create-project-btn').addEventListener('click', createNewProject);
+            }
+
+            async function createNewProject() {
+                try {
+                    const projectName = document.getElementById('project-name').value;
+                    const projectColor = document.getElementById('project-color').value;
+                    const projectLanguage = document.getElementById('project-language').value;
+                    
+                    if (!projectName) {
+                        alert("נא להזין שם למוצר/אתר");
+                        return;
+                    }
+
+                    const baseUrl = window.location.origin;
+                    const apiUrl = baseUrl.replace('http:', 'https:');
+
+                    // יצירת הפרויקט
+                    const projectResponse = await fetch(`${apiUrl}/api/projects/create-default`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            name: projectName,
+                            primaryColor: projectColor,
+                            language: projectLanguage
+                        })
+                    });
+
+                    if (!projectResponse.ok) {
+                        const errorData = await projectResponse.json().catch(() => ({}));
+                        throw new Error(errorData.message || 'שגיאה ביצירת פרויקט');
+                    }
+
+                    const projectResult = await projectResponse.json();
+                    if (!projectResult.success) {
+                        throw new Error(projectResult.message || 'שגיאה לא ידועה');
+                    }
+
+                    // שמירת ה-API key
+                    localStorage.setItem('chatbot_api_key', projectResult.data.apiKey);
+                    apiKey = projectResult.data.apiKey;
+
+                    // יצירת שאלות ברירת מחדל
+                    const faqResponse = await fetch(`${apiUrl}/api/faq/create-default`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            projectId: projectResult.data.projectId,
+                            language: projectLanguage
+                        })
+                    });
+
+                    if (!faqResponse.ok) {
+                        const errorData = await faqResponse.json().catch(() => ({}));
+                        throw new Error(errorData.message || 'שגיאה ביצירת שאלות ברירת מחדל');
+                    }
+
+                    const faqResult = await faqResponse.json();
+                    if (!faqResult.success) {
+                        throw new Error(faqResult.message || 'שגיאה ביצירת שאלות ברירת מחדל');
+                    }
+
+                    // טעינה מחדש של הדף
+                    window.location.reload();
+
+                } catch (error) {
+                    console.error("Error:", error);
+                    alert(error.message || "שגיאה לא ידועה");
+                }
+            }
+
+            async function getProjectData() {
+                try {
+                    const savedApiKey = localStorage.getItem('chatbot_api_key');
+                    if (!savedApiKey) {
+                        showLoginForm();
+                        return;
+                    }
+
+                    const baseUrl = window.location.origin;
+                    const apiUrl = baseUrl.replace('http:', 'https:');
+                    
+                    apiKey = savedApiKey;
+                    const response = await fetch(`${apiUrl}/api/projects/api-key/${apiKey}`);
+
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({}));
+                        throw new Error(errorData.message || 'שגיאה בטעינת נתוני הפרויקט');
+                    }
+
+                    const result = await response.json();
+                    if (!result.success) {
+                        throw new Error(result.message || 'שגיאה בטעינת נתוני הפרויקט');
+                    }
+
+                    projectData = result.data;
+                    
+                    // עדכון קוד ההטמעה
+                    const widgetCodeElem = document.getElementById('widget-code');
+                    if (widgetCodeElem) {
+                        const widgetUrl = `${apiUrl}/chatbot.js`;
+                        widgetCodeElem.value = `<script src="${widgetUrl}?key=${apiKey}"><\/script>`;
+                    }
+
+                    // טעינת נתונים ראשונית
+                    await loadFAQs();
+                    await loadAppearanceSettings();
+
+                } catch (error) {
+                    console.error("Error:", error);
+                    localStorage.removeItem('chatbot_api_key');
+                    alert(error.message || "שגיאה בטעינת נתוני הפרויקט");
+                    showLoginForm();
+                }
+            }
+
+            // Initialize everything
             getProjectData();
         });
     </script>
