@@ -41,7 +41,7 @@
             margin-top: 64px;
             min-height: calc(100vh - 64px);
             position: relative;
-            z-index: 100;
+            z-index: 1;
         }
 
         .sidebar {
@@ -53,7 +53,7 @@
             right: 0;
             box-shadow: -2px 0 10px rgba(0,0,0,0.1);
             overflow-y: auto;
-            z-index: 900;
+            z-index: 2;
         }
 
         .content {
@@ -64,7 +64,7 @@
             background-color: #f7f9fc;
             position: relative;
             overflow-x: hidden;
-            z-index: 100;
+            z-index: 1;
         }
 
         .stats-container {
@@ -938,516 +938,11 @@
         document.addEventListener('DOMContentLoaded', function() {
             const menuLinks = document.querySelectorAll('.menu-link');
             const tabContents = document.querySelectorAll('.tab-content');
-            
-            menuLinks.forEach(link => {
-                link.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const tabId = link.getAttribute('data-tab');
-                    if (!tabId) return;
-
-                    menuLinks.forEach(l => l.classList.remove('active'));
-                    tabContents.forEach(t => t.classList.remove('active'));
-                    
-                    link.classList.add('active');
-                    const tabElement = document.getElementById(tabId);
-                    if (tabElement) {
-                        tabElement.classList.add('active');
-                    }
-                });
-            });
-
-            const API_URL = window.location.origin;
             let projectData = null;
             let apiKey = null;
-
-            function showLoginForm() {
-                const existingForm = document.querySelector('.login-form-container');
-                if (existingForm) {
-                    existingForm.remove();
-                }
-
-                const loginFormHtml = `
-                    <div class="login-form-container" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000;">
-                        <div style="background: white; padding: 30px; border-radius: 10px; width: 350px;">
-                            <h2 style="text-align: right;">יצירת צ'אטבוט חדש</h2>
-                            <div class="form-group">
-                                <label for="project-name">שם המוצר/אתר</label>
-                                <input type="text" id="project-name" placeholder="הזן שם">
-                            </div>
-                            <div class="form-group">
-                                <label for="project-language">שפה</label>
-                                <select id="project-language">
-                                    <option value="he">עברית</option>
-                                    <option value="en">אנגלית</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="project-color">צבע ראשי</label>
-                                <input type="color" id="project-color" value="#3498db">
-                            </div>
-                            <button id="create-project-btn" style="width: 100%; margin-top: 10px;">צור צ'אטבוט</button>
-                        </div>
-                    </div>
-                `;
-                
-                const loginFormContainer = document.createElement('div');
-                loginFormContainer.innerHTML = loginFormHtml;
-                document.body.appendChild(loginFormContainer);
-                
-                document.getElementById('create-project-btn').addEventListener('click', createNewProject);
-            }
             
-            async function createNewProject() {
-                try {
-                    const projectName = document.getElementById('project-name').value;
-                    const projectColor = document.getElementById('project-color').value;
-                    const projectLanguage = document.getElementById('project-language').value;
-                    
-                    if (!projectName) {
-                        alert("נא להזין שם למוצר/אתר");
-                        return;
-                    }
-
-                    const baseUrl = window.location.origin;
-                    const apiUrl = baseUrl.replace('http:', 'https:');
-
-                    // יצירת הפרויקט
-                    const projectResponse = await fetch(`${apiUrl}/api/projects/create-default`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            name: projectName,
-                            primaryColor: projectColor,
-                            language: projectLanguage
-                        })
-                    });
-
-                    if (!projectResponse.ok) {
-                        const errorData = await projectResponse.json().catch(() => ({}));
-                        throw new Error(errorData.message || 'שגיאה ביצירת פרויקט');
-                    }
-
-                    const projectResult = await projectResponse.json();
-
-                    if (!projectResult.success) {
-                        throw new Error(projectResult.message || 'שגיאה לא ידועה');
-                    }
-
-                    // שמירת ה-API key
-                    localStorage.setItem('chatbot_api_key', projectResult.data.apiKey);
-                    apiKey = projectResult.data.apiKey;
-
-                    // יצירת שאלות ברירת מחדל
-                    const faqResponse = await fetch(`${apiUrl}/api/faq/create-default`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            projectId: projectResult.data.projectId,
-                            language: projectLanguage
-                        })
-                    });
-
-                    if (!faqResponse.ok) {
-                        const errorData = await faqResponse.json().catch(() => ({}));
-                        throw new Error(errorData.message || 'שגיאה ביצירת שאלות ברירת מחדל');
-                    }
-
-                    const faqResult = await faqResponse.json();
-                    if (!faqResult.success) {
-                        throw new Error(faqResult.message || 'שגיאה ביצירת שאלות ברירת מחדל');
-                    }
-
-                    // טעינה מחדש של הדף
-                    window.location.reload();
-
-                } catch (error) {
-                    console.error("Error:", error);
-                    alert(error.message || "שגיאה לא ידועה");
-                }
-            }
-            
-            async function getProjectData() {
-                try {
-                    const savedApiKey = localStorage.getItem('chatbot_api_key');
-                    if (!savedApiKey) {
-                        showLoginForm();
-                        return;
-                    }
-
-                    const baseUrl = window.location.origin;
-                    const apiUrl = baseUrl.replace('http:', 'https:');
-                    
-                    apiKey = savedApiKey;
-                    const response = await fetch(`${apiUrl}/api/projects/api-key/${apiKey}`);
-
-                    if (!response.ok) {
-                        const errorData = await response.json().catch(() => ({}));
-                        throw new Error(errorData.message || 'שגיאה בטעינת נתוני הפרויקט');
-                    }
-
-                    const result = await response.json();
-                    if (!result.success) {
-                        throw new Error(result.message || 'שגיאה בטעינת נתוני הפרויקט');
-                    }
-
-                    projectData = result.data;
-                    await loadProjectData();
-
-                } catch (error) {
-                    console.error("Error:", error);
-                    localStorage.removeItem('chatbot_api_key');
-                    alert(error.message || "שגיאה בטעינת נתוני הפרויקט");
-                    showLoginForm();
-                }
-            }
-            
-            async function loadProjectData() {
-                if (!projectData) return;
-
-                try {
-                    const baseUrl = window.location.origin;
-                    const apiUrl = baseUrl.replace('http:', 'https:');
-
-                    // עדכון קוד ההטמעה
-                    const widgetCodeElem = document.getElementById('widget-code');
-                    if (widgetCodeElem) {
-                        const widgetUrl = `${apiUrl}/chatbot.js`;
-                        widgetCodeElem.value = `<script src="${widgetUrl}?key=${apiKey}"><\/script>`;
-                    }
-
-                    // טעינת שאלות נפוצות
-                    await loadFAQs();
-
-                } catch (error) {
-                    console.error("Error loading project data:", error);
-                    alert("שגיאה בטעינת נתוני הפרויקט");
-                }
-            }
-            
-            async function loadFAQs() {
-                if (!projectData?._id) return;
-
-                try {
-                    const baseUrl = window.location.origin;
-                    const apiUrl = baseUrl.replace('http:', 'https:');
-                    const searchQuery = document.getElementById('faq-search')?.value || '';
-                    const categoryFilter = document.getElementById('faq-filter')?.value || '';
-
-                    const response = await fetch(`${apiUrl}/api/faq/project/${projectData._id}`);
-                    
-                    if (!response.ok) {
-                        const errorData = await response.json().catch(() => ({}));
-                        throw new Error(errorData.message || 'שגיאה בטעינת שאלות נפוצות');
-                    }
-
-                    const result = await response.json();
-                    if (!result.success) {
-                        throw new Error(result.message || 'שגיאה בטעינת שאלות נפוצות');
-                    }
-
-                    const faqContainer = document.getElementById('faq-list');
-                    if (!faqContainer) return;
-
-                    faqContainer.innerHTML = '';
-
-                    let faqs = result.data;
-                    
-                    // Filter by search query
-                    if (searchQuery) {
-                        faqs = faqs.filter(faq => 
-                            faq.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            faq.answer.toLowerCase().includes(searchQuery.toLowerCase())
-                        );
-                    }
-                    
-                    // Filter by category
-                    if (categoryFilter) {
-                        faqs = faqs.filter(faq => faq.category === categoryFilter);
-                    }
-
-                    if (faqs.length > 0) {
-                        faqs.forEach(faq => {
-                            const faqItem = document.createElement('div');
-                            faqItem.className = 'faq-item';
-                            faqItem.innerHTML = `
-                                <h3>${faq.question}</h3>
-                                <p>${faq.answer}</p>
-                                <div class="faq-actions">
-                                    <button onclick="editFAQ('${faq._id}')">ערוך</button>
-                                    <button class="danger" onclick="deleteFAQ('${faq._id}')">מחק</button>
-                                </div>
-                            `;
-                            faqContainer.appendChild(faqItem);
-                        });
-                    } else {
-                        faqContainer.innerHTML = '<p style="text-align: center; padding: 20px;">לא נמצאו שאלות נפוצות</p>';
-                    }
-
-                } catch (error) {
-                    console.error("Error loading FAQs:", error);
-                    alert(error.message || "שגיאה בטעינת שאלות נפוצות");
-                }
-            }
-            
-            async function addFAQ() {
-                const question = document.getElementById('faq-question')?.value;
-                const answer = document.getElementById('faq-answer')?.value;
-                const category = document.getElementById('faq-category')?.value;
-                const keywords = document.getElementById('faq-keywords')?.value.split(',').map(k => k.trim());
-                
-                if (!question || !answer) {
-                    alert("השאלה והתשובה הם שדות חובה");
-                    return;
-                }
-
-                try {
-                    const baseUrl = window.location.origin;
-                    const apiUrl = baseUrl.replace('http:', 'https:');
-                    
-                    const response = await fetch(`${apiUrl}/api/faq`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            projectId: projectData._id,
-                            question,
-                            answer,
-                            category: category || 'general',
-                            keywords,
-                            language: projectData.settings?.language || 'he'
-                        })
-                    });
-
-                    if (!response.ok) {
-                        const errorData = await response.json().catch(() => ({}));
-                        throw new Error(errorData.message || 'שגיאה בהוספת שאלה');
-                    }
-
-                    const result = await response.json();
-                    if (!result.success) {
-                        throw new Error(result.message || 'שגיאה בהוספת שאלה');
-                    }
-
-                    // Clear form
-                    document.getElementById('faq-question').value = '';
-                    document.getElementById('faq-answer').value = '';
-                    document.getElementById('faq-category').value = '';
-                    document.getElementById('faq-keywords').value = '';
-
-                    // Reload FAQs
-                    await loadFAQs();
-                    alert("השאלה נוספה בהצלחה");
-
-                } catch (error) {
-                    console.error("Error adding FAQ:", error);
-                    alert(error.message || "שגיאה בהוספת שאלה");
-                }
-            }
-
-            async function editFAQ(faqId) {
-                try {
-                    const baseUrl = window.location.origin;
-                    const apiUrl = baseUrl.replace('http:', 'https:');
-                    
-                    const response = await fetch(`${apiUrl}/api/faq/${faqId}`);
-                    if (!response.ok) {
-                        throw new Error('שגיאה בטעינת פרטי השאלה');
-                    }
-
-                    const faq = await response.json();
-                    
-                    // Create edit form
-                    const editForm = `
-                        <div class="edit-form-container" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000;">
-                            <div style="background: white; padding: 30px; border-radius: 10px; width: 500px; max-width: 90%;">
-                                <h2 style="text-align: right;">עריכת שאלה</h2>
-                                <div class="form-group">
-                                    <label for="edit-question">שאלה</label>
-                                    <input type="text" id="edit-question" value="${faq.question}">
-                                </div>
-                                <div class="form-group">
-                                    <label for="edit-answer">תשובה</label>
-                                    <textarea id="edit-answer" rows="4">${faq.answer}</textarea>
-                                </div>
-                                <div class="form-group">
-                                    <label for="edit-category">קטגוריה</label>
-                                    <select id="edit-category">
-                                        <option value="general" ${faq.category === 'general' ? 'selected' : ''}>כללי</option>
-                                        <option value="products" ${faq.category === 'products' ? 'selected' : ''}>מוצרים</option>
-                                        <option value="shipping" ${faq.category === 'shipping' ? 'selected' : ''}>משלוחים</option>
-                                        <option value="returns" ${faq.category === 'returns' ? 'selected' : ''}>החזרות</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="edit-keywords">מילות מפתח</label>
-                                    <input type="text" id="edit-keywords" value="${faq.keywords?.join(', ') || ''}">
-                                </div>
-                                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
-                                    <button onclick="closeEditForm()">ביטול</button>
-                                    <button class="success" onclick="updateFAQ('${faqId}')">שמור שינויים</button>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    
-                    const formContainer = document.createElement('div');
-                    formContainer.innerHTML = editForm;
-                    document.body.appendChild(formContainer);
-
-                } catch (error) {
-                    console.error("Error loading FAQ details:", error);
-                    alert("שגיאה בטעינת פרטי השאלה");
-                }
-            }
-
-            function closeEditForm() {
-                document.querySelector('.edit-form-container')?.remove();
-            }
-
-            async function updateFAQ(faqId) {
-                try {
-                    const question = document.getElementById('edit-question')?.value;
-                    const answer = document.getElementById('edit-answer')?.value;
-                    const category = document.getElementById('edit-category')?.value;
-                    const keywords = document.getElementById('edit-keywords')?.value.split(',').map(k => k.trim());
-
-                    if (!question || !answer) {
-                        alert("השאלה והתשובה הם שדות חובה");
-                        return;
-                    }
-
-                    const baseUrl = window.location.origin;
-                    const apiUrl = baseUrl.replace('http:', 'https:');
-
-                    const response = await fetch(`${apiUrl}/api/faq/${faqId}`, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            question,
-                            answer,
-                            category,
-                            keywords
-                        })
-                    });
-
-                    if (!response.ok) {
-                        throw new Error('שגיאה בעדכון השאלה');
-                    }
-
-                    closeEditForm();
-                    await loadFAQs();
-                    alert("השאלה עודכנה בהצלחה");
-
-                } catch (error) {
-                    console.error("Error updating FAQ:", error);
-                    alert("שגיאה בעדכון השאלה");
-                }
-            }
-
-            async function deleteFAQ(faqId) {
-                if (!confirm("האם אתה בטוח שברצונך למחוק שאלה זו?")) {
-                    return;
-                }
-
-                try {
-                    const baseUrl = window.location.origin;
-                    const apiUrl = baseUrl.replace('http:', 'https:');
-
-                    const response = await fetch(`${apiUrl}/api/faq/${faqId}`, {
-                        method: 'DELETE'
-                    });
-
-                    if (!response.ok) {
-                        throw new Error('שגיאה במחיקת השאלה');
-                    }
-
-                    await loadFAQs();
-                    alert("השאלה נמחקה בהצלחה");
-
-                } catch (error) {
-                    console.error("Error deleting FAQ:", error);
-                    alert("שגיאה במחיקת השאלה");
-                }
-            }
-
-            // Event Listeners
-            document.getElementById('add-faq-btn')?.addEventListener('click', addFAQ);
-            document.getElementById('faq-search')?.addEventListener('input', loadFAQs);
-            document.getElementById('faq-filter')?.addEventListener('change', loadFAQs);
-
-            // Appearance Functions
-            function initializeAppearance() {
-                const logoUpload = document.getElementById('logo-upload');
-                const logoFile = document.getElementById('logo-file');
-                const logoPreview = document.getElementById('logo-preview');
-                const uploadBtn = document.getElementById('upload-logo-btn');
-                const colorPreviews = document.querySelectorAll('.color-preview');
-                const customColor = document.getElementById('custom-color');
-                const applyColorBtn = document.getElementById('apply-color-btn');
-
-                // Logo upload functionality
-                logoUpload.addEventListener('click', () => logoFile.click());
-                logoUpload.addEventListener('dragover', (e) => {
-                    e.preventDefault();
-                    logoUpload.style.borderColor = '#3498db';
-                });
-                logoUpload.addEventListener('dragleave', () => {
-                    logoUpload.style.borderColor = '#ddd';
-                });
-                logoUpload.addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    logoUpload.style.borderColor = '#ddd';
-                    const file = e.dataTransfer.files[0];
-                    if (file && file.type.startsWith('image/')) {
-                        handleLogoFile(file);
-                    }
-                });
-
-                logoFile.addEventListener('change', (e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                        handleLogoFile(file);
-                    }
-                });
-
-                uploadBtn.addEventListener('click', async () => {
-                    const file = logoFile.files[0];
-                    if (!file) {
-                        alert('נא לבחור תמונה תחילה');
-                        return;
-                    }
-                    await uploadLogo(file);
-                });
-
-                // Color picker functionality
-                colorPreviews.forEach(preview => {
-                    preview.addEventListener('click', () => {
-                        const color = preview.getAttribute('data-color');
-                        customColor.value = color;
-                        updatePreviewColors(color);
-                    });
-                });
-
-                customColor.addEventListener('input', (e) => {
-                    updatePreviewColors(e.target.value);
-                });
-
-                applyColorBtn.addEventListener('click', async () => {
-                    await updateProjectColors(customColor.value);
-                });
-
-                // Load current appearance settings
-                loadAppearanceSettings();
-            }
-
-            async function handleLogoFile(file) {
+            // העברת הפונקציות לחלון הגלובלי
+            window.handleLogoFile = async function(file) {
                 if (!file.type.startsWith('image/')) {
                     alert('נא להעלות קובץ תמונה בלבד');
                     return;
@@ -1465,9 +960,14 @@
                     previewLogo.style.display = 'block';
                 };
                 reader.readAsDataURL(file);
-            }
+            };
 
-            async function uploadLogo(file) {
+            window.uploadLogo = async function(file) {
+                if (!projectData?._id) {
+                    alert('אנא המתן לטעינת הנתונים');
+                    return;
+                }
+
                 try {
                     const formData = new FormData();
                     formData.append('logo', file);
@@ -1496,19 +996,24 @@
                     console.error("Error uploading logo:", error);
                     alert(error.message || 'שגיאה בהעלאת הלוגו');
                 }
-            }
+            };
 
-            function updatePreviewColors(color) {
+            window.updatePreviewColors = function(color) {
                 const previewHeader = document.getElementById('preview-header');
                 const previewUserMessage = document.getElementById('preview-user-message');
                 const previewSendBtn = document.getElementById('preview-send-btn');
                 
-                previewHeader.style.backgroundColor = color;
-                previewUserMessage.style.backgroundColor = color;
-                previewSendBtn.style.backgroundColor = color;
-            }
+                if (previewHeader) previewHeader.style.backgroundColor = color;
+                if (previewUserMessage) previewUserMessage.style.backgroundColor = color;
+                if (previewSendBtn) previewSendBtn.style.backgroundColor = color;
+            };
 
-            async function updateProjectColors(color) {
+            window.updateProjectColors = async function(color) {
+                if (!projectData?._id) {
+                    alert('אנא המתן לטעינת הנתונים');
+                    return;
+                }
+
                 try {
                     const baseUrl = window.location.origin;
                     const apiUrl = baseUrl.replace('http:', 'https:');
@@ -1538,6 +1043,85 @@
                     console.error("Error updating colors:", error);
                     alert(error.message || 'שגיאה בעדכון הצבעים');
                 }
+            };
+
+            function initializeAppearance() {
+                const logoUpload = document.getElementById('logo-upload');
+                const logoFile = document.getElementById('logo-file');
+                const uploadBtn = document.getElementById('upload-logo-btn');
+                const colorPreviews = document.querySelectorAll('.color-preview');
+                const customColor = document.getElementById('custom-color');
+                const applyColorBtn = document.getElementById('apply-color-btn');
+
+                if (logoUpload && logoFile) {
+                    // Logo upload functionality
+                    logoUpload.addEventListener('click', () => logoFile.click());
+                    
+                    logoUpload.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        logoUpload.style.borderColor = '#3498db';
+                    });
+                    
+                    logoUpload.addEventListener('dragleave', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        logoUpload.style.borderColor = '#ddd';
+                    });
+                    
+                    logoUpload.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        logoUpload.style.borderColor = '#ddd';
+                        const file = e.dataTransfer.files[0];
+                        if (file && file.type.startsWith('image/')) {
+                            window.handleLogoFile(file);
+                        }
+                    });
+
+                    logoFile.addEventListener('change', (e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                            window.handleLogoFile(file);
+                        }
+                    });
+                }
+
+                if (uploadBtn) {
+                    uploadBtn.addEventListener('click', async () => {
+                        const file = logoFile.files[0];
+                        if (!file) {
+                            alert('נא לבחור תמונה תחילה');
+                            return;
+                        }
+                        await window.uploadLogo(file);
+                    });
+                }
+
+                // Color picker functionality
+                if (colorPreviews) {
+                    colorPreviews.forEach(preview => {
+                        preview.addEventListener('click', () => {
+                            const color = preview.getAttribute('data-color');
+                            if (customColor) customColor.value = color;
+                            window.updatePreviewColors(color);
+                        });
+                    });
+                }
+
+                if (customColor) {
+                    customColor.addEventListener('input', (e) => {
+                        window.updatePreviewColors(e.target.value);
+                    });
+                }
+
+                if (applyColorBtn) {
+                    applyColorBtn.addEventListener('click', async () => {
+                        if (customColor) {
+                            await window.updateProjectColors(customColor.value);
+                        }
+                    });
+                }
             }
 
             async function loadAppearanceSettings() {
@@ -1549,18 +1133,24 @@
                         const logoPreview = document.getElementById('logo-preview');
                         const previewLogo = document.getElementById('preview-logo');
                         
-                        logoPreview.src = projectData.logo;
-                        logoPreview.style.display = 'block';
+                        if (logoPreview) {
+                            logoPreview.src = projectData.logo;
+                            logoPreview.style.display = 'block';
+                        }
                         
-                        previewLogo.src = projectData.logo;
-                        previewLogo.style.display = 'block';
+                        if (previewLogo) {
+                            previewLogo.src = projectData.logo;
+                            previewLogo.style.display = 'block';
+                        }
                     }
 
                     // Load colors
                     if (projectData.primaryColor) {
                         const customColor = document.getElementById('custom-color');
-                        customColor.value = projectData.primaryColor;
-                        updatePreviewColors(projectData.primaryColor);
+                        if (customColor) {
+                            customColor.value = projectData.primaryColor;
+                            window.updatePreviewColors(projectData.primaryColor);
+                        }
                     }
                     
                 } catch (error) {
@@ -1568,11 +1158,276 @@
                 }
             }
 
-            // Initialize appearance when loading project data
-            document.addEventListener('DOMContentLoaded', function() {
-                // ... existing event listeners ...
-                initializeAppearance();
-            });
+            // פונקציות לטיפול בשאלות נפוצות
+            async function addFAQ() {
+                if (!projectData?._id) {
+                    alert('אנא המתן לטעינת הנתונים');
+                    return;
+                }
+
+                const question = document.getElementById('faq-question')?.value;
+                const answer = document.getElementById('faq-answer')?.value;
+                const category = document.getElementById('faq-category')?.value;
+                const keywords = document.getElementById('faq-keywords')?.value.split(',').map(k => k.trim());
+
+                if (!question || !answer) {
+                    alert('נא למלא את השאלה והתשובה');
+                    return;
+                }
+
+                try {
+                    const baseUrl = window.location.origin;
+                    const apiUrl = baseUrl.replace('http:', 'https:');
+
+                    const response = await fetch(`${apiUrl}/api/faq`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            projectId: projectData._id,
+                            question,
+                            answer,
+                            category: category || 'general',
+                            keywords,
+                            language: projectData.settings?.language || 'he'
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('שגיאה בהוספת השאלה');
+                    }
+
+                    const result = await response.json();
+                    if (!result.success) {
+                        throw new Error(result.message || 'שגיאה בהוספת השאלה');
+                    }
+
+                    // ניקוי הטופס
+                    document.getElementById('faq-question').value = '';
+                    document.getElementById('faq-answer').value = '';
+                    document.getElementById('faq-category').value = '';
+                    document.getElementById('faq-keywords').value = '';
+
+                    // טעינה מחדש של השאלות
+                    await loadFAQs();
+                    alert('השאלה נוספה בהצלחה');
+
+                } catch (error) {
+                    console.error("Error adding FAQ:", error);
+                    alert(error.message || 'שגיאה בהוספת השאלה');
+                }
+            }
+
+            async function loadFAQs() {
+                if (!projectData?._id) return;
+
+                try {
+                    const baseUrl = window.location.origin;
+                    const apiUrl = baseUrl.replace('http:', 'https:');
+                    const searchQuery = document.getElementById('faq-search')?.value || '';
+                    const categoryFilter = document.getElementById('faq-filter')?.value || '';
+
+                    const response = await fetch(`${apiUrl}/api/faq/project/${projectData._id}`);
+                    if (!response.ok) {
+                        throw new Error('שגיאה בטעינת השאלות');
+                    }
+
+                    const result = await response.json();
+                    if (!result.success) {
+                        throw new Error(result.message || 'שגיאה בטעינת השאלות');
+                    }
+
+                    const faqContainer = document.getElementById('faq-list');
+                    if (!faqContainer) return;
+
+                    let faqs = result.data;
+
+                    // סינון לפי חיפוש
+                    if (searchQuery) {
+                        faqs = faqs.filter(faq =>
+                            faq.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            faq.answer.toLowerCase().includes(searchQuery.toLowerCase())
+                        );
+                    }
+
+                    // סינון לפי קטגוריה
+                    if (categoryFilter) {
+                        faqs = faqs.filter(faq => faq.category === categoryFilter);
+                    }
+
+                    // הצגת השאלות
+                    faqContainer.innerHTML = '';
+                    if (faqs.length > 0) {
+                        faqs.forEach(faq => {
+                            const faqItem = document.createElement('div');
+                            faqItem.className = 'faq-item';
+                            faqItem.innerHTML = `
+                                <h3>${faq.question}</h3>
+                                <p>${faq.answer}</p>
+                                <div class="faq-actions">
+                                    <button onclick="window.editFAQ('${faq._id}')">ערוך</button>
+                                    <button class="danger" onclick="window.deleteFAQ('${faq._id}')">מחק</button>
+                                </div>
+                            `;
+                            faqContainer.appendChild(faqItem);
+                        });
+                    } else {
+                        faqContainer.innerHTML = '<p style="text-align: center; padding: 20px;">לא נמצאו שאלות נפוצות</p>';
+                    }
+
+                } catch (error) {
+                    console.error("Error loading FAQs:", error);
+                    alert('שגיאה בטעינת השאלות');
+                }
+            }
+
+            window.editFAQ = async function(faqId) {
+                try {
+                    const baseUrl = window.location.origin;
+                    const apiUrl = baseUrl.replace('http:', 'https:');
+
+                    const response = await fetch(`${apiUrl}/api/faq/${faqId}`);
+                    if (!response.ok) {
+                        throw new Error('שגיאה בטעינת פרטי השאלה');
+                    }
+
+                    const result = await response.json();
+                    if (!result.success) {
+                        throw new Error(result.message || 'שגיאה בטעינת פרטי השאלה');
+                    }
+
+                    const faq = result.data;
+
+                    // יצירת טופס עריכה
+                    const editForm = document.createElement('div');
+                    editForm.className = 'edit-form-container';
+                    editForm.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000;';
+                    
+                    editForm.innerHTML = `
+                        <div style="background: white; padding: 30px; border-radius: 10px; width: 500px; max-width: 90%;">
+                            <h2 style="text-align: right;">עריכת שאלה</h2>
+                            <div class="form-group">
+                                <label for="edit-question">שאלה</label>
+                                <input type="text" id="edit-question" value="${faq.question}">
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-answer">תשובה</label>
+                                <textarea id="edit-answer" rows="4">${faq.answer}</textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-category">קטגוריה</label>
+                                <select id="edit-category">
+                                    <option value="general" ${faq.category === 'general' ? 'selected' : ''}>כללי</option>
+                                    <option value="products" ${faq.category === 'products' ? 'selected' : ''}>מוצרים</option>
+                                    <option value="shipping" ${faq.category === 'shipping' ? 'selected' : ''}>משלוחים</option>
+                                    <option value="returns" ${faq.category === 'returns' ? 'selected' : ''}>החזרות</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-keywords">מילות מפתח</label>
+                                <input type="text" id="edit-keywords" value="${faq.keywords?.join(', ') || ''}">
+                            </div>
+                            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                                <button onclick="window.closeEditForm()">ביטול</button>
+                                <button class="success" onclick="window.updateFAQ('${faqId}')">שמור שינויים</button>
+                            </div>
+                        </div>
+                    `;
+
+                    document.body.appendChild(editForm);
+
+                } catch (error) {
+                    console.error("Error loading FAQ details:", error);
+                    alert('שגיאה בטעינת פרטי השאלה');
+                }
+            };
+
+            window.closeEditForm = function() {
+                document.querySelector('.edit-form-container')?.remove();
+            };
+
+            window.updateFAQ = async function(faqId) {
+                try {
+                    const question = document.getElementById('edit-question')?.value;
+                    const answer = document.getElementById('edit-answer')?.value;
+                    const category = document.getElementById('edit-category')?.value;
+                    const keywords = document.getElementById('edit-keywords')?.value.split(',').map(k => k.trim());
+
+                    if (!question || !answer) {
+                        alert('נא למלא את השאלה והתשובה');
+                        return;
+                    }
+
+                    const baseUrl = window.location.origin;
+                    const apiUrl = baseUrl.replace('http:', 'https:');
+
+                    const response = await fetch(`${apiUrl}/api/faq/${faqId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            question,
+                            answer,
+                            category,
+                            keywords
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('שגיאה בעדכון השאלה');
+                    }
+
+                    const result = await response.json();
+                    if (!result.success) {
+                        throw new Error(result.message || 'שגיאה בעדכון השאלה');
+                    }
+
+                    window.closeEditForm();
+                    await loadFAQs();
+                    alert('השאלה עודכנה בהצלחה');
+
+                } catch (error) {
+                    console.error("Error updating FAQ:", error);
+                    alert('שגיאה בעדכון השאלה');
+                }
+            };
+
+            window.deleteFAQ = async function(faqId) {
+                if (!confirm('האם אתה בטוח שברצונך למחוק שאלה זו?')) {
+                    return;
+                }
+
+                try {
+                    const baseUrl = window.location.origin;
+                    const apiUrl = baseUrl.replace('http:', 'https:');
+
+                    const response = await fetch(`${apiUrl}/api/faq/${faqId}`, {
+                        method: 'DELETE'
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('שגיאה במחיקת השאלה');
+                    }
+
+                    await loadFAQs();
+                    alert('השאלה נמחקה בהצלחה');
+
+                } catch (error) {
+                    console.error("Error deleting FAQ:", error);
+                    alert('שגיאה במחיקת השאלה');
+                }
+            };
+
+            // הוספת מאזיני אירועים
+            document.getElementById('add-faq-btn')?.addEventListener('click', addFAQ);
+            document.getElementById('faq-search')?.addEventListener('input', loadFAQs);
+            document.getElementById('faq-filter')?.addEventListener('change', loadFAQs);
+
+            // Initialize appearance and get project data
+            initializeAppearance();
+            getProjectData();
         });
     </script>
 </body>
