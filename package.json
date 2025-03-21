@@ -4,9 +4,13 @@
   "description": "Interactive FAQ chatbot with admin console",
   "main": "src/server/server.js",
   "scripts": {
-    "start": "node -e \"require('fs').mkdirSync('./src/uploads', { recursive: true })\" && node src/server/server.js",
+    "start": "node src/server/server.js",
     "dev": "node -e \"require('fs').mkdirSync('./src/uploads', { recursive: true })\" && nodemon src/server/server.js",
+    "build": "echo \"Creating required directories\" && mkdir -p ./src/uploads",
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "engines": {
+    "node": ">=16.x"
   },
   "keywords": [
     "chatbot",
@@ -20,7 +24,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "bcrypt": "^5.1.0",
+    "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
