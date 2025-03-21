@@ -16,4 +16,7 @@ router.put('/:id', protect, projectController.updateProject);
 router.delete('/:id', protect, projectController.deleteProject);
 router.post('/:id/upload-icon', protect, upload.single('icon'), projectController.uploadChatIcon);
 
+// Create default project
+router.post('/create-default', projectController.createDefaultProject);
+
 module.exports = router; 

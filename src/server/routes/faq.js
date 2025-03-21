@@ -12,4 +12,7 @@ router.post('/', protect, faqController.createFaq);
 router.put('/:id', protect, faqController.updateFaq);
 router.delete('/:id', protect, faqController.deleteFaq);
 
+// Create default FAQs for a project
+router.post('/create-default', faqController.createDefaultFAQs);
+
 module.exports = router; 

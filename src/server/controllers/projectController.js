@@ -232,4 +232,62 @@ exports.getEmbedCode = async (req, res) => {
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
+};
+
+/**
+ * Create a new default project
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ */
+exports.createDefaultProject = async (req, res) => {
+  try {
+    const { name, primaryColor, language } = req.body;
+    
+    if (!name) {
+      return res.status(400).json({
+        success: false,
+        message: 'Project name is required'
+      });
+    }
+    
+    // Generate API key
+    const apiKey = crypto.randomBytes(16).toString('hex');
+    
+    // Create default project with basic settings
+    const newProject = new Project({
+      name,
+      apiKey,
+      settings: {
+        primaryColor: primaryColor || '#3498db',
+        secondaryColor: '#ecf0f1',
+        direction: language === 'he' ? 'rtl' : 'ltr',
+        position: 'bottom-right',
+        fontFamily: language === 'he' ? 'Arial, sans-serif' : 'Segoe UI, sans-serif',
+        fontSize: '14px',
+        welcomeMessage: language === 'he' ? 'שלום! כיצד אוכל לעזור לך היום?' : 'Hello! How can I help you today?',
+        fallbackMessage: language === 'he' ? 'אני מצטער, אני לא מבין את השאלה. האם תוכל לנסח אותה אחרת?' : 'I\'m sorry, I don\'t understand that question. Could you try asking something else?',
+        language: language || 'en'
+      },
+      faqs: []
+    });
+    
+    await newProject.save();
+    
+    res.status(201).json({
+      success: true,
+      message: 'Default project created successfully',
+      data: {
+        projectId: newProject._id,
+        apiKey: newProject.apiKey,
+        settings: newProject.settings
+      }
+    });
+  } catch (error) {
+    console.error('Error creating default project:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error creating default project',
+      error: error.message
+    });
+  }
 }; 

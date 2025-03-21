@@ -154,4 +154,90 @@ exports.answerQuestion = async (req, res) => {
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
+};
+
+/**
+ * Create default FAQs for a project
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ */
+exports.createDefaultFAQs = async (req, res) => {
+  try {
+    const { projectId, language } = req.body;
+    
+    if (!projectId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Project ID is required'
+      });
+    }
+    
+    // Default FAQs in Hebrew or English based on language parameter
+    const defaultFAQs = language === 'he' ? [
+      {
+        question: 'מה שעות הפעילות שלכם?',
+        answer: 'אנחנו פתוחים בימים א\'-ה\' בין השעות 9:00-17:00.',
+        category: 'כללי',
+        keywords: ['שעות', 'פתיחה', 'פעילות', 'עובדים']
+      },
+      {
+        question: 'כיצד אוכל לפנות אליכם?',
+        answer: 'ניתן לפנות אלינו בטלפון 03-1234567 או באימייל info@example.co.il.',
+        category: 'יצירת קשר',
+        keywords: ['טלפון', 'מייל', 'אימייל', 'קשר', 'פניה']
+      },
+      {
+        question: 'האם אתם מציעים משלוח חינם?',
+        answer: 'כן, משלוח חינם להזמנות מעל 200 ש"ח.',
+        category: 'משלוחים',
+        keywords: ['משלוח', 'חינם', 'דואר', 'שליח']
+      }
+    ] : [
+      {
+        question: 'What are your business hours?',
+        answer: 'We are open Monday to Friday, 9 AM to 5 PM.',
+        category: 'General',
+        keywords: ['hours', 'open', 'business', 'time']
+      },
+      {
+        question: 'How can I contact you?',
+        answer: 'You can reach us at (123) 456-7890 or by email at info@example.com.',
+        category: 'Contact',
+        keywords: ['phone', 'email', 'contact', 'support']
+      },
+      {
+        question: 'Do you offer free shipping?',
+        answer: 'Yes, we offer free shipping on orders over $50.',
+        category: 'Shipping',
+        keywords: ['shipping', 'free', 'delivery', 'orders']
+      }
+    ];
+    
+    // Create FAQs in database
+    const faqPromises = defaultFAQs.map(faq => {
+      return new FAQ({
+        projectId,
+        question: faq.question,
+        answer: faq.answer,
+        category: faq.category,
+        keywords: faq.keywords,
+        language: language || 'en'
+      }).save();
+    });
+    
+    await Promise.all(faqPromises);
+    
+    res.status(201).json({
+      success: true,
+      message: 'Default FAQs created successfully',
+      count: defaultFAQs.length
+    });
+  } catch (error) {
+    console.error('Error creating default FAQs:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error creating default FAQs',
+      error: error.message
+    });
+  }
 }; 

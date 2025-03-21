@@ -793,7 +793,7 @@
                 </div>
                 <div class="form-group">
                     <label for="widget-code">Widget Embed Code</label>
-                    <textarea id="widget-code" rows="4" readonly><script src="https://mybot-67ea.onrender.com/chatbot.js?key=YOUR_API_KEY"></script></textarea>
+                    <textarea id="widget-code" rows="4" readonly><script src="https://YOUR-SERVER-URL.com/chatbot.js?key=YOUR_API_KEY"></script></textarea>
                 </div>
                 <button>Copy Code</button>
             </div>
@@ -941,7 +941,236 @@
                     alert('This feature is coming soon: ' + this.textContent.trim());
                 });
             });
+
+            // API Functions
+            const API_URL = window.location.origin;
+            let projectData = null;
+            let apiKey = null;
+            
+            // Get project data from API key
+            async function getProjectData() {
+                const savedApiKey = localStorage.getItem('chatbot_api_key');
+                if (!savedApiKey) {
+                    // If no API key, show login
+                    showLoginForm();
+                    return;
+                }
+                
+                try {
+                    apiKey = savedApiKey;
+                    const response = await fetch(`${API_URL}/api/projects/api-key/${apiKey}`);
+                    if (response.ok) {
+                        const result = await response.json();
+                        if (result.success) {
+                            projectData = result.data;
+                            loadProjectData();
+                        } else {
+                            showLoginForm();
+                        }
+                    } else {
+                        showLoginForm();
+                    }
+                } catch (error) {
+                    console.error("Error fetching project data:", error);
+                    showLoginForm();
+                }
+            }
+            
+            // Show login form
+            function showLoginForm() {
+                const loginFormHtml = `
+                    <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000;">
+                        <div style="background: white; padding: 30px; border-radius: 10px; width: 350px;">
+                            <h2>הכנס פרטים ליצירת צ'אטבוט</h2>
+                            <div class="form-group">
+                                <label for="project-name">שם המוצר/אתר</label>
+                                <input type="text" id="project-name" placeholder="הזן שם">
+                            </div>
+                            <div class="form-group">
+                                <label for="project-language">שפה</label>
+                                <select id="project-language">
+                                    <option value="he">עברית</option>
+                                    <option value="en">אנגלית</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="project-color">צבע</label>
+                                <input type="color" id="project-color" value="#3498db">
+                            </div>
+                            <button id="create-project-btn" style="width: 100%; margin-top: 10px;">צור צ'אטבוט</button>
+                        </div>
+                    </div>
+                `;
+                const loginFormContainer = document.createElement('div');
+                loginFormContainer.innerHTML = loginFormHtml;
+                document.body.appendChild(loginFormContainer);
+                
+                document.getElementById('create-project-btn').addEventListener('click', createNewProject);
+            }
+            
+            // Create new project
+            async function createNewProject() {
+                const projectName = document.getElementById('project-name').value;
+                const projectColor = document.getElementById('project-color').value;
+                const projectLanguage = document.getElementById('project-language').value;
+                
+                if (!projectName) {
+                    alert('נא להזין שם למוצר/אתר');
+                    return;
+                }
+                
+                try {
+                    // Create project
+                    const response = await fetch(`${API_URL}/api/projects/create-default`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            name: projectName,
+                            primaryColor: projectColor,
+                            language: projectLanguage
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        const result = await response.json();
+                        if (result.success) {
+                            // Save API key
+                            localStorage.setItem('chatbot_api_key', result.data.apiKey);
+                            apiKey = result.data.apiKey;
+                            
+                            // Create default FAQs
+                            await fetch(`${API_URL}/api/faq/create-default`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    projectId: result.data.projectId,
+                                    language: projectLanguage
+                                })
+                            });
+                            
+                            // Reload page
+                            window.location.reload();
+                        } else {
+                            alert('שגיאה ביצירת הצאטבוט: ' + result.message);
+                        }
+                    } else {
+                        alert('שגיאה ביצירת הצאטבוט');
+                    }
+                } catch (error) {
+                    console.error("Error creating project:", error);
+                    alert('שגיאה ביצירת הצאטבוט');
+                }
+            }
+            
+            // Load project data into UI
+            function loadProjectData() {
+                if (!projectData) return;
+                
+                // Update embed code
+                const widgetCodeElem = document.getElementById('widget-code');
+                if (widgetCodeElem) {
+                    widgetCodeElem.value = `<script src="${API_URL}/chatbot.js?key=${apiKey}"></script>`;
+                }
+                
+                // Set data tables to show real FAQs
+                loadFAQs();
+            }
+            
+            // Load FAQs from API
+            async function loadFAQs() {
+                try {
+                    const response = await fetch(`${API_URL}/api/faq/project/${projectData._id}`);
+                    if (response.ok) {
+                        const result = await response.json();
+                        if (result.success && result.data.length > 0) {
+                            // Clear existing FAQs
+                            const faqContainer = document.querySelector('.card:nth-child(2) .faq-item').parentNode;
+                            faqContainer.innerHTML = '';
+                            
+                            // Add FAQs from API
+                            result.data.forEach(faq => {
+                                const faqItem = document.createElement('div');
+                                faqItem.className = 'faq-item';
+                                faqItem.innerHTML = `
+                                    <h3>${faq.question}</h3>
+                                    <p>${faq.answer}</p>
+                                    <div class="faq-actions">
+                                        <button data-id="${faq._id}">Edit</button>
+                                        <button class="danger" data-id="${faq._id}">Delete</button>
+                                    </div>
+                                `;
+                                faqContainer.appendChild(faqItem);
+                            });
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error loading FAQs:", error);
+                }
+            }
+            
+            // Initialize
+            getProjectData();
+            
+            // Add button functionality with API calls
+            document.querySelector('button.success')?.addEventListener('click', async function() {
+                const question = document.getElementById('faq-question').value;
+                const answer = document.getElementById('faq-answer').value;
+                const category = document.getElementById('faq-category').value;
+                const keywords = document.getElementById('faq-keywords').value.split(',').map(k => k.trim());
+                
+                if (!question || !answer) {
+                    alert('השאלה והתשובה הם שדות חובה');
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`${API_URL}/api/faq`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            projectId: projectData._id,
+                            question,
+                            answer,
+                            category: category || 'General',
+                            keywords,
+                            language: projectData.settings.language || 'en'
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        // Clear form
+                        document.getElementById('faq-question').value = '';
+                        document.getElementById('faq-answer').value = '';
+                        document.getElementById('faq-keywords').value = '';
+                        
+                        // Reload FAQs
+                        loadFAQs();
+                        
+                        alert('השאלה נוספה בהצלחה');
+                    } else {
+                        alert('שגיאה בהוספת שאלה');
+                    }
+                } catch (error) {
+                    console.error("Error adding FAQ:", error);
+                    alert('שגיאה בהוספת שאלה');
+                }
+            });
+            
+            // Copy embed code
+            document.querySelector('button[data-action="copy-code"]')?.addEventListener('click', function() {
+                const widgetCode = document.getElementById('widget-code');
+                widgetCode.select();
+                document.execCommand('copy');
+                alert('הקוד הועתק ללוח');
+            });
         });
     </script>
+    <script src="https://YOUR-SERVER-URL.com/chatbot.js?key=YOUR_API_KEY"></script>
 </body>
 </html> 
