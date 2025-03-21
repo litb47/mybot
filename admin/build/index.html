@@ -951,7 +951,6 @@
             async function getProjectData() {
                 const savedApiKey = localStorage.getItem('chatbot_api_key');
                 if (!savedApiKey) {
-                    // If no API key, show login
                     showLoginForm();
                     return;
                 }
@@ -1020,7 +1019,6 @@
                 }
                 
                 try {
-                    // Create project
                     const response = await fetch(`${API_URL}/api/projects/create-default`, {
                         method: 'POST',
                         headers: {
@@ -1036,11 +1034,9 @@
                     if (response.ok) {
                         const result = await response.json();
                         if (result.success) {
-                            // Save API key
                             localStorage.setItem('chatbot_api_key', result.data.apiKey);
                             apiKey = result.data.apiKey;
                             
-                            // Create default FAQs
                             await fetch(`${API_URL}/api/faq/create-default`, {
                                 method: 'POST',
                                 headers: {
@@ -1052,7 +1048,6 @@
                                 })
                             });
                             
-                            // Reload page
                             window.location.reload();
                         } else {
                             alert('שגיאה ביצירת הצאטבוט: ' + result.message);
@@ -1070,13 +1065,11 @@
             function loadProjectData() {
                 if (!projectData) return;
                 
-                // Update embed code
                 const widgetCodeElem = document.getElementById('widget-code');
                 if (widgetCodeElem) {
-                    widgetCodeElem.value = `<script src="${API_URL}/chatbot.js?key=${apiKey}"></script>`;
+                    widgetCodeElem.value = `<script src="${API_URL}/chatbot.js?key=${apiKey}"><\/script>`;
                 }
                 
-                // Set data tables to show real FAQs
                 loadFAQs();
             }
             
@@ -1087,11 +1080,9 @@
                     if (response.ok) {
                         const result = await response.json();
                         if (result.success && result.data.length > 0) {
-                            // Clear existing FAQs
                             const faqContainer = document.querySelector('.card:nth-child(2) .faq-item').parentNode;
                             faqContainer.innerHTML = '';
                             
-                            // Add FAQs from API
                             result.data.forEach(faq => {
                                 const faqItem = document.createElement('div');
                                 faqItem.className = 'faq-item';
@@ -1115,7 +1106,7 @@
             // Initialize
             getProjectData();
             
-            // Add button functionality with API calls
+            // Add FAQ button functionality
             document.querySelector('button.success')?.addEventListener('click', async function() {
                 const question = document.getElementById('faq-question').value;
                 const answer = document.getElementById('faq-answer').value;
@@ -1144,12 +1135,10 @@
                     });
                     
                     if (response.ok) {
-                        // Clear form
                         document.getElementById('faq-question').value = '';
                         document.getElementById('faq-answer').value = '';
                         document.getElementById('faq-keywords').value = '';
                         
-                        // Reload FAQs
                         loadFAQs();
                         
                         alert('השאלה נוספה בהצלחה');
@@ -1173,4 +1162,4 @@
     </script>
     <script src="chatbot.js?key=YOUR_API_KEY"></script>
 </body>
-</html> 
+</html>
