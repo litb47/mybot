@@ -14,7 +14,7 @@ const authRoutes = require('./routes/auth');
 // Config
 dotenv.config();
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 // Middleware
 app.use(cors());
@@ -33,6 +33,11 @@ app.use('/api/faq', faqRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/auth', authRoutes);
+
+// Health check endpoint for Render
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
 
 // Serve the chatbot script with API key
 app.get('/chatbot.js', (req, res) => {
@@ -60,14 +65,16 @@ app.get('/chatbot.js', (req, res) => {
   }
 });
 
+// Always serve static admin files
+app.use(express.static(path.join(__dirname, '../../admin/build')));
+
+app.get('/admin*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../admin/build/index.html'));
+});
+
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '../../client/build')));
-  app.use(express.static(path.join(__dirname, '../../admin/build')));
-  
-  app.get('/admin*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../../admin/build/index.html'));
-  });
   
   app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../../client/build/index.html'));
