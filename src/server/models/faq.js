@@ -1,33 +1,28 @@
 const mongoose = require('mongoose');
 
 const faqSchema = new mongoose.Schema({
-  question: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  answer: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  language: {
-    type: String,
-    enum: ['en', 'he'],
-    required: true
-  },
-  project: {
+  projectId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Project',
     required: true
   },
-  askCount: {
+  question: {
+    type: String,
+    required: [true, 'Please provide a question'],
+    trim: true
+  },
+  answer: {
+    type: String,
+    required: [true, 'Please provide an answer'],
+    trim: true
+  },
+  category: {
+    type: String,
+    trim: true
+  },
+  order: {
     type: Number,
     default: 0
-  },
-  lastAsked: {
-    type: Date,
-    default: null
   },
   active: {
     type: Boolean,
@@ -43,7 +38,7 @@ const faqSchema = new mongoose.Schema({
   }
 });
 
-// Update timestamps
+// Update the updatedAt timestamp before saving
 faqSchema.pre('save', function(next) {
   this.updatedAt = Date.now();
   next();

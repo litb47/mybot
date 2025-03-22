@@ -1,9 +1,10 @@
 const mongoose = require('mongoose');
+const crypto = require('crypto');
 
 const projectSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: true,
+    required: [true, 'Please provide a project name'],
     trim: true
   },
   domain: {
@@ -12,8 +13,8 @@ const projectSchema = new mongoose.Schema({
   },
   apiKey: {
     type: String,
-    required: true,
-    unique: true
+    unique: true,
+    select: false
   },
   settings: {
     language: {
@@ -23,7 +24,7 @@ const projectSchema = new mongoose.Schema({
     },
     primaryColor: {
       type: String,
-      default: '#3498db'
+      default: '#007bff'
     },
     logo: {
       type: String,
@@ -31,7 +32,7 @@ const projectSchema = new mongoose.Schema({
     },
     welcomeMessage: {
       type: String,
-      default: 'שלום! איך אוכל לעזור לך היום?'
+      default: 'שלום! אני כאן כדי לעזור לך. איך אוכל לסייע?'
     },
     fallbackMessage: {
       type: String,
@@ -40,11 +41,11 @@ const projectSchema = new mongoose.Schema({
     // Appearance settings
     chatIcon: {
       type: String,
-      default: '/default-icon.png'
+      default: '/images/default-chat-icon.png'
     },
     secondaryColor: {
       type: String,
-      default: '#f0f0f0'
+      default: '#e9ecef'
     },
     fontFamily: {
       type: String,
@@ -52,11 +53,11 @@ const projectSchema = new mongoose.Schema({
     },
     fontSize: {
       type: String,
-      default: 'medium'
+      default: '14px'
     },
     direction: {
       type: String,
-      enum: ['ltr', 'rtl'],
+      enum: ['rtl', 'ltr'],
       default: 'rtl'
     },
     position: {
@@ -97,17 +98,12 @@ const projectSchema = new mongoose.Schema({
   }
 });
 
-// Update timestamps
+// Generate API key before saving
 projectSchema.pre('save', function(next) {
-  this.updatedAt = Date.now();
-  next();
-});
-
-// Generate API key before saving new project
-projectSchema.pre('save', function(next) {
-  if (this.isNew) {
-    this.apiKey = require('crypto').randomBytes(32).toString('hex');
+  if (!this.apiKey) {
+    this.apiKey = crypto.randomBytes(32).toString('hex');
   }
+  this.updatedAt = Date.now();
   next();
 });
 

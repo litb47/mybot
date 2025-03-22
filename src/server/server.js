@@ -19,7 +19,7 @@ const PORT = process.env.PORT || 5001;
 // Middleware
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://your-domain.com', 'https://admin.your-domain.com']
+    ? process.env.CORS_ORIGIN?.split(',') || ['https://your-domain.com']
     : '*',
   credentials: true
 }));
@@ -47,7 +47,7 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/auth', authRoutes);
 
-// Health check endpoint for Render
+// Health check endpoint
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
