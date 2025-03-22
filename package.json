@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/server/server.js",
     "dev": "node -e \"require('fs').mkdirSync('./src/uploads', { recursive: true })\" && nodemon src/server/server.js",
-    "build": "echo \"Creating required directories\" && mkdir -p ./src/uploads",
+    "build": "echo \"Creating required directories\" && mkdir -p ./src/uploads && cd admin && npm install && npm run build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "engines": {

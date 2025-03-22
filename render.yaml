@@ -13,4 +13,8 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
-    healthCheckPath: /api/health 
+      - key: CORS_ORIGIN
+        value: https://your-domain.com,https://admin.your-domain.com
+    healthCheckPath: /api/health
+    autoDeploy: true
+    plan: free 

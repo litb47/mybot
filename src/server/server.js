@@ -17,9 +17,22 @@ const app = express();
 const PORT = process.env.PORT || 5001;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://your-domain.com', 'https://admin.your-domain.com']
+    : '*',
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Create uploads directory if it doesn't exist
+const uploadsDir = path.join(__dirname, '../uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Static files
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use(express.static(path.join(__dirname, '../../public')));
 
@@ -65,31 +78,37 @@ app.get('/chatbot.js', (req, res) => {
   }
 });
 
-// Always serve static admin files
-app.use(express.static(path.join(__dirname, '../../admin/build')));
-
-app.get('/admin*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../../admin/build/index.html'));
-});
-
-// Serve static files in production
+// Serve admin panel in production
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../../client/build')));
+  const adminBuildPath = path.join(__dirname, '../../admin/build');
   
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../../client/build/index.html'));
-  });
+  // Check if admin build exists
+  if (fs.existsSync(adminBuildPath)) {
+    app.use('/admin', express.static(adminBuildPath));
+    
+    app.get('/admin/*', (req, res) => {
+      res.sendFile(path.join(adminBuildPath, 'index.html'));
+    });
+  } else {
+    console.warn('Admin build directory not found. Admin panel will not be available.');
+  }
 }
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+  console.error(err.stack);
+  res.status(500).json({ 
+    success: false, 
+    message: process.env.NODE_ENV === 'production' 
+      ? 'Internal server error' 
+      : err.message 
+  });
 });
 
 // Start server
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
 module.exports = app; 
