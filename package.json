@@ -1,16 +1,16 @@
 {
   "name": "faq-chatbot",
   "version": "1.0.0",
-  "description": "Interactive FAQ chatbot with admin console",
+  "description": "Modern FAQ Chatbot with Admin Panel",
   "main": "src/server/server.js",
   "scripts": {
     "start": "node src/server/server.js",
-    "dev": "node -e \"require('fs').mkdirSync('./src/uploads', { recursive: true })\" && nodemon src/server/server.js",
-    "build": "echo \"Creating required directories\" && mkdir -p ./src/uploads && cd admin && npm install && npm run build",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "nodemon src/server/server.js",
+    "build": "cd admin && npm install && npm run build",
+    "postinstall": "cd admin && npm install"
   },
   "engines": {
-    "node": ">=16.x"
+    "node": ">=18.0.0"
   },
   "keywords": [
     "chatbot",
@@ -31,17 +31,19 @@
     "axios": "^1.8.4",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.7",
-    "express": "^4.21.2",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^7.8.6",
+    "mongoose": "^7.6.3",
     "multer": "^1.4.5-lts.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^7.4.0"
+    "react-router-dom": "^7.4.0",
+    "path": "^0.12.7",
+    "fs": "0.0.1-security"
   },
   "devDependencies": {
-    "nodemon": "^2.0.22"
+    "nodemon": "^3.0.1"
   },
   "repository": {
     "type": "git",

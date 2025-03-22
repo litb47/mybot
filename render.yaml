@@ -1,7 +1,7 @@
 services:
   - type: web
     name: faq-chatbot
-    env: node
+    runtime: node
     buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
